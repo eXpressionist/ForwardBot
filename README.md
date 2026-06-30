@@ -64,8 +64,9 @@ On Windows PowerShell, activate the environment with:
 ## Admin Usage
 
 1. Add the bot to a group or supergroup.
-2. Open a private chat with the bot from the Telegram account whose ID is set in `ADMIN_ID`.
-3. Send `/chats`.
-4. Tap a listed chat to switch it between `❌ Blocked` and `✅ Allowed`.
+2. If the bot was already in the group before this app started, send `/track` in that group once.
+3. Open a private chat with the bot from the Telegram account whose ID is set in `ADMIN_ID`.
+4. Send `/chats`.
+5. Tap a listed chat to switch it between `❌ Blocked` and `✅ Allowed`.
 
 Only media from allowed chats is copied to `TARGET_CHANNEL_ID`.

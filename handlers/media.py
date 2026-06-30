@@ -37,6 +37,8 @@ async def copy_allowed_media(message: Message, db: Database, bot: Bot, settings:
     if not _has_supported_media(message):
         return
 
+    await db.upsert_tracked_chat(message.chat.id, _source_title(message))
+
     if not await db.is_chat_whitelisted(message.chat.id):
         return
 
