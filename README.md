@@ -9,7 +9,8 @@ A lightweight Telegram bot that tracks groups it has been added to and copies al
 - Dynamic group tracking via Telegram `my_chat_member` updates.
 - Admin-only `/chats` menu for toggling which tracked groups are allowed.
 - Copies photos, videos, and image/video documents to the target channel.
-- Appends source attribution to captions while respecting Telegram's 1024 character caption limit.
+- Ignores forwarded/reposted media while allowing posts sent by users, anonymous admins, or participants posting as channels.
+- Appends source attribution and the original message link to captions while respecting Telegram's 1024 character caption limit.
 - Handles albums by preserving the grouped media order and adding source attribution once.
 
 ## Setup

@@ -37,6 +37,14 @@ async def copy_allowed_media(message: Message, db: Database, bot: Bot, settings:
     if not _has_supported_media(message):
         return
 
+    if not _is_not_repost(message):
+        logger.info(
+            "Ignored non-original media from chat %s message %s",
+            message.chat.id,
+            message.message_id,
+        )
+        return
+
     await db.upsert_tracked_chat(message.chat.id, _source_title(message))
 
     if not await db.is_chat_whitelisted(message.chat.id):
@@ -80,14 +88,21 @@ async def _flush_album_after_delay(key: str, bot: Bot, settings: Settings) -> No
 
 
 async def _copy_album(messages: list[Message], bot: Bot, settings: Settings) -> None:
-    supported = [message for message in messages if _has_supported_media(message)]
+    supported = [
+        message
+        for message in messages
+        if _has_supported_media(message) and _is_not_repost(message)
+    ]
     if not supported:
         return
 
     supported.sort(key=lambda item: item.message_id)
     caption_message = next((item for item in supported if item.caption), supported[0])
-    source_title = _source_title(caption_message)
-    caption = _caption_with_source(caption_message.caption, source_title)
+    caption = _caption_with_source(
+        caption_message.caption,
+        _source_title(caption_message),
+        _message_link(supported[0]),
+    )
 
     media = []
     for index, message in enumerate(supported):
@@ -112,7 +127,7 @@ async def _copy_album(messages: list[Message], bot: Bot, settings: Settings) -> 
 
 
 async def _copy_single_message(message: Message, bot: Bot, settings: Settings) -> None:
-    caption = _caption_with_source(message.caption, _source_title(message))
+    caption = _caption_with_source(message.caption, _source_title(message), _message_link(message))
     await _copy_with_retry(message, bot, settings, caption=caption)
 
 
@@ -161,6 +176,19 @@ def _has_supported_media(message: Message) -> bool:
     return False
 
 
+def _is_not_repost(message: Message) -> bool:
+    if getattr(message, "forward_origin", None) is not None:
+        return False
+
+    if getattr(message, "forward_date", None) is not None:
+        return False
+
+    if getattr(message, "is_automatic_forward", False):
+        return False
+
+    return True
+
+
 def _message_to_input_media(
     message: Message,
     caption: str | None,
@@ -178,22 +206,41 @@ def _message_to_input_media(
     return None
 
 
-def _caption_with_source(caption: str | None, source_title: str) -> str:
-    suffix = f"\n\n📢 Source: {source_title}"
+def _caption_with_source(caption: str | None, source_title: str, source_url: str | None) -> str:
+    source = f"\U0001f4e2 Source: {source_title}"
+    if source_url:
+        source = f"{source}\n{source_url}"
+
+    suffix = f"\n\n{source}"
     base = (caption or "").strip()
+    source_suffix = suffix.strip()
 
     if not base:
-        return suffix.strip()
+        return source_suffix[:CAPTION_LIMIT]
 
     available = CAPTION_LIMIT - len(suffix)
     if available <= 0:
-        return suffix.strip()[:CAPTION_LIMIT]
+        return source_suffix[:CAPTION_LIMIT]
 
     if len(base) > available:
-        base = base[: max(0, available - 1)].rstrip() + "…"
+        if available <= 3:
+            base = base[:available].rstrip()
+        else:
+            base = base[: available - 3].rstrip() + "..."
 
     return f"{base}{suffix}"
 
 
 def _source_title(message: Message) -> str:
     return message.chat.title or message.chat.full_name or str(message.chat.id)
+
+
+def _message_link(message: Message) -> str | None:
+    if message.chat.username:
+        return f"https://t.me/{message.chat.username}/{message.message_id}"
+
+    chat_id = str(message.chat.id)
+    if chat_id.startswith("-100"):
+        return f"https://t.me/c/{chat_id[4:]}/{message.message_id}"
+
+    return None
