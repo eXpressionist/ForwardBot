@@ -1,0 +1,9 @@
+services:
+  forwardbot:
+    build: .
+    container_name: forwardbot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
