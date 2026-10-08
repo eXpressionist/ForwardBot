@@ -47,6 +47,28 @@ View logs:
 docker compose logs -f forwardbot
 ```
 
+## GitHub Container Registry
+
+The workflow in `.github/workflows/publish-image.yml` builds and publishes
+`ghcr.io/<owner>/<repository>` (lowercase) for Linux AMD64 and ARM64.
+It runs on pushes to `main`, pushes of tags matching `v*`, or manually from
+the GitHub Actions tab. Authentication uses the built-in `GITHUB_TOKEN`;
+no additional registry secrets are required.
+
+Pushes to the default branch publish `latest` and the branch tag. Version tags
+such as `v1.0.0` publish the matching image tag. Each build also publishes a
+`sha-<short-commit>` tag. Version builds do not replace `latest`.
+
+```bash
+docker pull ghcr.io/<owner>/<repository>:latest
+```
+
+To use the published image with Compose, replace `build: .` with
+`image: ghcr.io/<owner>/<repository>:latest`, keeping the environment file
+and data volume, then run `docker compose pull` and `docker compose up -d`.
+For unauthenticated pulls, change the package visibility to Public in GitHub
+package settings; private packages require a registry login.
+
 ## Run Locally
 
 ```bash
